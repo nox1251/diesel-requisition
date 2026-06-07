@@ -1,0 +1,10 @@
+# Streamlit secrets — never commit
+.streamlit/secrets.toml
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
