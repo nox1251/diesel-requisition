@@ -8,7 +8,7 @@ DEV_ACCOUNTS = ["admin@dev", "user@dev", "manager@dev", "purchaser@dev"]
 def current_user() -> str:
     """The logged-in viewer's email on Streamlit Cloud, or a dev account locally."""
     try:
-        email = st.experimental_user.email
+        email = st.user.email
     except Exception:
         email = None
     if not email:
