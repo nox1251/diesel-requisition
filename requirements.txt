@@ -2,3 +2,4 @@ streamlit[auth]
 pandas
 sqlalchemy
 psycopg2-binary
+httpx
