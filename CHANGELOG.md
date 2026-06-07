@@ -3,6 +3,12 @@ All notable changes to this project are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); newest on top.
 
 ## [Unreleased]
+### Added
+- Google sign-in (OIDC via `st.login()`) for the deployed app; the signed-in email is matched against the `users` table for roles. Added `Authlib` dependency.
+- `dev_mode` secret flag that enables the local "Dev: act as" role switcher; without it the switcher cannot appear (so it is never available on the deployed app).
+
+### Changed
+- `auth.py` no longer relies on Streamlit Community Cloud exposing the viewer's email (which it stopped doing in Streamlit 1.42+); production now requires explicit Google sign-in.
 
 ## [Stage A] - 2026-06-08
 ### Added

@@ -41,7 +41,10 @@ cp secrets-template.toml .streamlit/secrets.toml
 streamlit run app.py
 ```
 
-Without a logged-in identity, the sidebar shows a **Dev: act as** switcher so you can use the app as any role locally.
+For local development, set `dev_mode = true` in `.streamlit/secrets.toml` (see
+`secrets-template.toml`). This shows a **Dev: act as** switcher in the sidebar so
+you can use the app as any role without signing in. `dev_mode` must never be set
+in the deployed app's secrets.
 
 ## Deployment
 
@@ -49,8 +52,19 @@ Live app: **https://diesel-requisition.streamlit.app** (private — viewers must
 
 Deployed on **Streamlit Community Cloud**, backed by a **Neon** PostgreSQL database.
 
-- In the Streamlit Cloud app settings, add the same `[connections.postgresql]` `url` under **Secrets** (never commit it).
-- On Streamlit Cloud the logged-in viewer's email is used as identity; their roles are read from the `users` table. Seed your email as `admin` (already done for the project owner).
+**Secrets** (set in the Streamlit Cloud app's *Secrets* box, never committed):
+
+- `[connections.postgresql] url` — the Neon connection string.
+- `[auth]` — Google OIDC sign-in (`client_id`, `client_secret`, `cookie_secret`,
+  `redirect_uri = https://diesel-requisition.streamlit.app/oauth2callback`,
+  `server_metadata_url = https://accounts.google.com/.well-known/openid-configuration`).
+- Do **not** set `dev_mode` here.
+
+**Authentication:** the deployed app gates access behind Google sign-in
+(`st.login()`). The signed-in Google email is matched against the `users` table
+to determine roles; an email with no matching row gets no access. (Streamlit
+Community Cloud no longer exposes the viewer's email to apps automatically, so
+the app configures its own Google OIDC provider.)
 
 ## Database schema (brief)
 
