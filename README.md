@@ -67,7 +67,9 @@ diesel-requisition/
 ├── app.py              # entry: login gate + role-based navigation
 ├── db.py               # connection, schema init, query helpers, seed data
 ├── auth.py             # current user, role checks, local dev role override
-├── views/              # per-role screens (added in later stages)
+├── views/
+│   ├── requisition.py  # User: new request + my requests
+│   └── approvals.py    # Manager: approve / reject pending requests
 ├── requirements.txt
 ├── secrets-template.toml
 ├── .gitignore
@@ -79,4 +81,4 @@ diesel-requisition/
 
 ## Current status
 
-**Stage 0 — Foundation: complete.** Schema, seed data, auth with dev role switcher, and role-based navigation with placeholder screens are in place. Feature screens are built in Stages A–D.
+**Stage A — Requisition core: complete.** Users can create requisitions and track their status; managers can approve or reject (with a reason). Built on the Stage 0 foundation (schema, seed data, auth with dev role switcher, role-based navigation). Pricing, confirmation, billing, and master-data screens (Stages B–D) are still placeholders.

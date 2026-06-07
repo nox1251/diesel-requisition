@@ -4,6 +4,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); newest on top.
 
 ## [Unreleased]
 
+## [Stage A] - 2026-06-08
+### Added
+- User requisition form (request date, active-asset dropdown, litres, purpose) creating a `pending` requisition, plus a "My Requests" table showing each request's status.
+- Manager approval queue: approve a pending requisition (→ `approved`) or reject it with a required reason (→ `rejected`), stamping who and when.
+- `db.py` query helpers: `get_active_assets`, `create_requisition`, `get_my_requisitions`, `get_pending_requisitions`, `approve_requisition`, `reject_requisition`.
+- `views/requisition.py` and `views/approvals.py`, wired into the role-based navigation.
+
+### Changed
+- Schema init now runs once per session instead of on every rerun.
+
 ## [Stage 0] - 2026-06-07
 ### Changed
 - `auth.py` now reads identity from `st.user.email` (the current API) instead of the deprecated `st.experimental_user.email`.

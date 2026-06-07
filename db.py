@@ -121,3 +121,91 @@ def get_user_roles(email: str) -> list[str]:
     if rows.empty:
         return []
     return list(rows.iloc[0]["roles"])
+
+
+def get_active_assets():
+    """Active assets for the requisition dropdown, as a DataFrame of id + name."""
+    conn = get_conn()
+    return conn.query(
+        "SELECT id, name FROM assets WHERE status = 'active' ORDER BY name",
+        ttl=0,
+    )
+
+
+def create_requisition(requested_by, asset_id, requested_liters, purpose, request_date):
+    """Insert a new requisition in 'pending' status."""
+    conn = get_conn()
+    with conn.session as s:
+        s.execute(
+            text(
+                "INSERT INTO requisitions "
+                "(request_date, requested_by, asset_id, requested_liters, purpose) "
+                "VALUES (:date, :by, :asset_id, :liters, :purpose)"
+            ),
+            {
+                "date": request_date,
+                "by": requested_by,
+                "asset_id": asset_id,
+                "liters": requested_liters,
+                "purpose": purpose,
+            },
+        )
+        s.commit()
+
+
+def get_my_requisitions(email):
+    """All requisitions raised by this user, newest first, with the asset name."""
+    conn = get_conn()
+    return conn.query(
+        "SELECT r.request_date, a.name AS asset, r.requested_liters, "
+        "       r.purpose, r.status, r.reject_reason "
+        "FROM requisitions r JOIN assets a ON a.id = r.asset_id "
+        "WHERE r.requested_by = :email "
+        "ORDER BY r.created_at DESC",
+        params={"email": email},
+        ttl=0,
+    )
+
+
+def get_pending_requisitions():
+    """Requisitions awaiting a manager's decision, oldest first."""
+    conn = get_conn()
+    return conn.query(
+        "SELECT r.id, r.request_date, r.requested_by, a.name AS asset, "
+        "       r.requested_liters, r.purpose "
+        "FROM requisitions r JOIN assets a ON a.id = r.asset_id "
+        "WHERE r.status = 'pending' "
+        "ORDER BY r.created_at",
+        ttl=0,
+    )
+
+
+def approve_requisition(req_id, approver):
+    """Approve a pending requisition, stamping who and when."""
+    conn = get_conn()
+    with conn.session as s:
+        s.execute(
+            text(
+                "UPDATE requisitions "
+                "SET status = 'approved', approved_by = :by, approved_at = now() "
+                "WHERE id = :id AND status = 'pending'"
+            ),
+            {"by": approver, "id": req_id},
+        )
+        s.commit()
+
+
+def reject_requisition(req_id, approver, reason):
+    """Reject a pending requisition with a reason, stamping who and when."""
+    conn = get_conn()
+    with conn.session as s:
+        s.execute(
+            text(
+                "UPDATE requisitions "
+                "SET status = 'rejected', approved_by = :by, approved_at = now(), "
+                "    reject_reason = :reason "
+                "WHERE id = :id AND status = 'pending'"
+            ),
+            {"by": approver, "id": req_id, "reason": reason},
+        )
+        s.commit()

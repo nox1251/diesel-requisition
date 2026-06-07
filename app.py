@@ -4,10 +4,15 @@ import streamlit as st
 
 from auth import current_user, has_role
 from db import init_schema, get_user_roles
+from views.requisition import new_requisition, my_requests
+from views.approvals import approvals
 
 st.set_page_config(page_title="Diesel Requisition", page_icon="⛽")
 
-init_schema()
+# Build the schema and seed once per session, not on every rerun.
+if "schema_ready" not in st.session_state:
+    init_schema()
+    st.session_state.schema_ready = True
 
 email = current_user()
 roles = get_user_roles(email)
@@ -40,5 +45,12 @@ if not available:
 
 page = st.sidebar.radio("Go to", available)
 
-st.title(page)
-st.info("This screen is a placeholder — it will be built in a later stage.")
+st.header(page)
+if page == "New Requisition":
+    new_requisition(email)
+elif page == "My Requests":
+    my_requests(email)
+elif page == "Approvals":
+    approvals(email)
+else:
+    st.info("This screen is a placeholder — it will be built in a later stage.")
