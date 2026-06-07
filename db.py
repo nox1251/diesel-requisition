@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS requisitions (
 
 # Seed users so the dev role switcher has real roles, plus the live admin.
 SEED_USERS = [
-    ("denver.so+diesel@gmail.com", "Denver", ["admin"]),
+    ("denver.so@gmail.com", "Denver", ["admin"]),
     ("admin@dev", "Dev Admin", ["admin"]),
     ("user@dev", "Dev User", ["user"]),
     ("manager@dev", "Dev Manager", ["manager"]),
