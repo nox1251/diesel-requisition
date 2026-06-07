@@ -45,6 +45,8 @@ Without a logged-in identity, the sidebar shows a **Dev: act as** switcher so yo
 
 ## Deployment
 
+Live app: **https://diesel-requisition.streamlit.app** (private — viewers must be invited).
+
 Deployed on **Streamlit Community Cloud**, backed by a **Neon** PostgreSQL database.
 
 - In the Streamlit Cloud app settings, add the same `[connections.postgresql]` `url` under **Secrets** (never commit it).
