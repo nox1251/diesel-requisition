@@ -11,15 +11,15 @@ from db import (
 )
 
 
-def billing(email):
+def billing(username):
     create_tab, view_tab = st.tabs(["Create billing", "Bill payment request"])
     with create_tab:
-        _create_billing(email)
+        _create_billing(username)
     with view_tab:
         _view_billings()
 
 
-def _create_billing(email):
+def _create_billing(username):
     rows = get_billable_requisitions()
     if rows.empty:
         st.info("No confirmed requests are awaiting billing.")
@@ -60,7 +60,7 @@ def _create_billing(email):
             st.error("Select at least one request.")
             return
         billing_id = create_billing(
-            email, selected, supplier_ref.strip() or None, note.strip() or None
+            username, selected, supplier_ref.strip() or None, note.strip() or None
         )
         st.success(f"Billing #{billing_id} created with {len(selected)} request(s).")
         st.rerun()

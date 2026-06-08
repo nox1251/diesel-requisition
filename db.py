@@ -9,7 +9,7 @@ from sqlalchemy.exc import OperationalError
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS users (
-    email        TEXT PRIMARY KEY,
+    username        TEXT PRIMARY KEY,
     display_name TEXT,
     roles        TEXT[] NOT NULL DEFAULT '{}'
 );
@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS requisitions (
 
 # Seed users so the dev role switcher has real roles, plus the live admin.
 SEED_USERS = [
-    ("denver.so@gmail.com", "Denver", ["admin"]),
+    ("denver", "Denver", ["admin"]),
     ("admin@dev", "Dev Admin", ["admin"]),
     ("user@dev", "Dev User", ["user"]),
     ("manager@dev", "Dev Manager", ["manager"]),
@@ -103,13 +103,13 @@ def init_schema():
         try:
             with conn.session as s:
                 s.execute(text(SCHEMA_SQL))
-                for email, name, roles in SEED_USERS:
+                for username, name, roles in SEED_USERS:
                     s.execute(
                         text(
-                            "INSERT INTO users (email, display_name, roles) "
-                            "VALUES (:email, :name, :roles) ON CONFLICT (email) DO NOTHING"
+                            "INSERT INTO users (username, display_name, roles) "
+                            "VALUES (:username, :name, :roles) ON CONFLICT (username) DO NOTHING"
                         ),
-                        {"email": email, "name": name, "roles": roles},
+                        {"username": username, "name": name, "roles": roles},
                     )
                 already_seeded = s.execute(text("SELECT COUNT(*) FROM assets")).scalar()
                 if not already_seeded:
@@ -129,12 +129,12 @@ def init_schema():
             time.sleep(1.5)
 
 
-def get_user_roles(email: str) -> list[str]:
+def get_user_roles(username: str) -> list[str]:
     """Return the roles for a user, or an empty list if unknown."""
     conn = get_conn()
     rows = conn.query(
-        "SELECT roles FROM users WHERE email = :email",
-        params={"email": email},
+        "SELECT roles FROM users WHERE username = :username",
+        params={"username": username},
         ttl=0,
     )
     if rows.empty:
@@ -172,7 +172,7 @@ def create_requisition(requested_by, asset_id, requested_liters, purpose, reques
         s.commit()
 
 
-def get_my_requisitions(email):
+def get_my_requisitions(username):
     """All requisitions raised by this user, newest first, with the asset name."""
     conn = get_conn()
     return conn.query(
@@ -180,9 +180,9 @@ def get_my_requisitions(email):
         "       r.status, r.actual_liters, r.drawn_date, "
         "       r.actual_liters * r.unit_price AS amount, r.reject_reason "
         "FROM requisitions r JOIN assets a ON a.id = r.asset_id "
-        "WHERE r.requested_by = :email "
+        "WHERE r.requested_by = :username "
         "ORDER BY r.created_at DESC",
-        params={"email": email},
+        params={"username": username},
         ttl=0,
     )
 
@@ -262,20 +262,20 @@ def set_daily_price(price_date, price, set_by):
         s.commit()
 
 
-def get_my_approved_requisitions(email):
+def get_my_approved_requisitions(username):
     """This user's approved requests awaiting actual litres, oldest first."""
     conn = get_conn()
     return conn.query(
         "SELECT r.id, r.request_date, a.name AS asset, r.requested_liters, r.purpose "
         "FROM requisitions r JOIN assets a ON a.id = r.asset_id "
-        "WHERE r.requested_by = :email AND r.status = 'approved' "
+        "WHERE r.requested_by = :username AND r.status = 'approved' "
         "ORDER BY r.created_at",
-        params={"email": email},
+        params={"username": username},
         ttl=0,
     )
 
 
-def update_actual(req_id, email, actual_liters, drawn_date, receipt_no, unit_price):
+def update_actual(req_id, username, actual_liters, drawn_date, receipt_no, unit_price):
     """Record actual litres + drawn date on an approved request, snapshotting the
     drawn date's price, and move it to 'for_confirmation'."""
     conn = get_conn()
@@ -286,7 +286,7 @@ def update_actual(req_id, email, actual_liters, drawn_date, receipt_no, unit_pri
                 "SET actual_liters = :al, drawn_date = :dd, receipt_no = :rn, "
                 "    unit_price = :up, actual_filled_at = now(), "
                 "    status = 'for_confirmation' "
-                "WHERE id = :id AND requested_by = :email AND status = 'approved'"
+                "WHERE id = :id AND requested_by = :username AND status = 'approved'"
             ),
             {
                 "al": float(actual_liters),
@@ -294,7 +294,7 @@ def update_actual(req_id, email, actual_liters, drawn_date, receipt_no, unit_pri
                 "rn": receipt_no,
                 "up": Decimal(str(unit_price)),
                 "id": int(req_id),
-                "email": email,
+                "username": username,
             },
         )
         s.commit()

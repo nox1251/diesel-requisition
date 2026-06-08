@@ -5,7 +5,7 @@ import streamlit as st
 from db import get_pending_requisitions, approve_requisition, reject_requisition
 
 
-def approvals(email):
+def approvals(username):
     rows = get_pending_requisitions()
     if rows.empty:
         st.info("No requisitions are awaiting approval.")
@@ -23,13 +23,13 @@ def approvals(email):
             reason = st.text_input("Rejection reason", key=f"reason_{r.id}")
             approve_col, reject_col = st.columns(2)
             if approve_col.button("Approve", key=f"approve_{r.id}", type="primary"):
-                approve_requisition(r.id, email)
+                approve_requisition(r.id, username)
                 st.success(f"Requisition #{r.id} approved.")
                 st.rerun()
             if reject_col.button("Reject", key=f"reject_{r.id}"):
                 if not reason.strip():
                     st.error("Please enter a reason before rejecting.")
                 else:
-                    reject_requisition(r.id, email, reason.strip())
+                    reject_requisition(r.id, username, reason.strip())
                     st.warning(f"Requisition #{r.id} rejected.")
                     st.rerun()

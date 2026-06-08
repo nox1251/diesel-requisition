@@ -9,7 +9,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); newest on top.
 
 ### Changed
 - `auth.py` no longer relies on Streamlit Community Cloud exposing the viewer's email (which it stopped doing in Streamlit 1.42+); production now requires an explicit login.
-- Login now uses a short username instead of the email. Credentials are keyed by username; the entry's `email` field maps to the `users` table for roles, so the app's internal identity is still the email.
+- Login and identity now use a plain **username** instead of an email. Renamed the `users.email` column to `users.username` (PK); the signed-in username is the app's identity everywhere (roles, `requested_by`, stamps) and matches a `users` row directly. Credential blocks no longer need an `email` field.
 - Database connection is more resilient to Neon's serverless idle/wake cycle: `pool_pre_ping` + `pool_recycle` replace stale connections, and `init_schema()` retries transient disconnects.
 
 ### Removed

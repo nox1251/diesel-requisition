@@ -18,10 +18,10 @@ if "schema_ready" not in st.session_state:
     init_schema()
     st.session_state.schema_ready = True
 
-email = current_user()
-roles = get_user_roles(email)
+username = current_user()
+roles = get_user_roles(username)
 
-st.sidebar.write(f"**{email}**")
+st.sidebar.write(f"**{username}**")
 st.sidebar.caption("Roles: " + (", ".join(roles) if roles else "none"))
 
 # Each page lists the roles that unlock it. Admin unlocks everything via has_role.
@@ -52,18 +52,18 @@ page = st.sidebar.radio("Go to", available)
 
 st.header(page)
 if page == "New Requisition":
-    new_requisition(email)
+    new_requisition(username)
 elif page == "My Requests":
-    my_requests(email)
+    my_requests(username)
 elif page == "Record Fuel Drawn":
-    encode_actual(email)
+    encode_actual(username)
 elif page == "Approvals":
-    approvals(email)
+    approvals(username)
 elif page == "Daily Price":
-    pricing(email)
+    pricing(username)
 elif page == "Confirm Receipts":
-    confirm(email)
+    confirm(username)
 elif page == "Billing":
-    billing(email)
+    billing(username)
 elif page == "Master Data":
-    master_data(email, "admin" in roles)
+    master_data(username, "admin" in roles)

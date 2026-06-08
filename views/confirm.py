@@ -5,7 +5,7 @@ import streamlit as st
 from db import get_for_confirmation_requisitions, confirm_requisition
 
 
-def confirm(email):
+def confirm(username):
     rows = get_for_confirmation_requisitions()
     if rows.empty:
         st.info("No requests are awaiting confirmation.")
@@ -23,6 +23,6 @@ def confirm(email):
             st.write(f"**Amount:** {amount:,.2f}")
             st.write(f"**Receipt no.:** {r.receipt_no or '—'}")
             if st.button("Confirm", key=f"confirm_{r.id}", type="primary"):
-                confirm_requisition(r.id, email)
+                confirm_requisition(r.id, username)
                 st.success(f"Requisition #{r.id} confirmed.")
                 st.rerun()

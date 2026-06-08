@@ -7,7 +7,7 @@ import streamlit as st
 from db import get_price_for_date, set_daily_price
 
 
-def pricing(email):
+def pricing(username):
     price_date = st.date_input("Price date", value=dt.date.today())
     existing = get_price_for_date(price_date)
     if existing is not None:
@@ -27,6 +27,6 @@ def pricing(email):
         if price <= 0:
             st.error("Price must be greater than zero.")
             return
-        set_daily_price(price_date, price, email)
+        set_daily_price(price_date, price, username)
         st.success(f"Price for {price_date} set to {price:.2f} per litre.")
         st.rerun()

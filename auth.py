@@ -1,7 +1,7 @@
 """Current user, role checks, and a local-dev role override.
 
 Production gates access behind a username/password login (streamlit-authenticator);
-the signed-in user's email is matched against the `users` table for roles. Local
+the signed-in username is matched against the `users` table for roles. Local
 development sets `dev_mode = true` in secrets to skip login and act as any role.
 The dev switcher is never available unless `dev_mode` is set, so it cannot appear
 on the deployed app.
@@ -15,11 +15,9 @@ Secrets layout for the deployed app:
 
     [credentials.usernames.denver]          # the login username
     name = "Denver"
-    email = "denver.so@gmail.com"           # must match a row in the users table
     password = "<the user's password>"      # auto-hashed at runtime
 
-People log in with the username, but the app identifies them by the linked email,
-which is matched against the `users` table for roles.
+Each username should match a row in the `users` table, which holds the roles.
 """
 
 import streamlit as st
@@ -36,16 +34,15 @@ def _to_plain(obj):
 
 
 def current_user() -> str:
-    """Return the current user's email, gating access by login when deployed."""
+    """Return the current user's username, gating access by login when deployed."""
     # Local development: act as any role without logging in.
     if st.secrets.get("dev_mode", False):
         return st.sidebar.selectbox("Dev: act as", DEV_ACCOUNTS)
 
     # Deployed: require a username/password login.
-    credentials = _to_plain(st.secrets["credentials"])
     cfg = st.secrets["authenticator"]
     authenticator = stauth.Authenticate(
-        credentials,
+        _to_plain(st.secrets["credentials"]),
         cfg["cookie_name"],
         cfg["cookie_key"],
         cfg.get("cookie_expiry_days", 30),
@@ -54,10 +51,7 @@ def current_user() -> str:
     status = st.session_state.get("authentication_status")
     if status:
         authenticator.logout("Log out", location="sidebar")
-        # People log in with a username; identify them by the linked email.
-        username = st.session_state["username"]
-        user = credentials.get("usernames", {}).get(username, {})
-        return user.get("email") or username
+        return st.session_state["username"]
     if status is False:
         st.error("Username or password is incorrect.")
     st.stop()

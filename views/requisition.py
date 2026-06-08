@@ -23,7 +23,7 @@ STATUS_LABELS = {
 }
 
 
-def new_requisition(email):
+def new_requisition(username):
     assets = get_active_assets()
     if assets.empty:
         st.info("No active assets yet. Ask an admin to add one before requesting fuel.")
@@ -43,12 +43,12 @@ def new_requisition(email):
         if liters <= 0:
             st.error("Requested litres must be greater than zero.")
             return
-        create_requisition(email, asset_id, liters, purpose.strip() or None, request_date)
+        create_requisition(username, asset_id, liters, purpose.strip() or None, request_date)
         st.success("Requisition submitted and is now pending approval.")
 
 
-def my_requests(email):
-    rows = get_my_requisitions(email)
+def my_requests(username):
+    rows = get_my_requisitions(username)
     if rows.empty:
         st.info("You haven't submitted any requisitions yet.")
         return
@@ -73,8 +73,8 @@ def my_requests(email):
     )
 
 
-def encode_actual(email):
-    rows = get_my_approved_requisitions(email)
+def encode_actual(username):
+    rows = get_my_approved_requisitions(username)
     if rows.empty:
         st.info("You have no approved requests awaiting actual litres.")
         return
@@ -104,7 +104,7 @@ def encode_actual(email):
                         "set the price for that day, then try again."
                     )
                     continue
-                update_actual(r.id, email, actual, drawn, receipt.strip() or None, price)
+                update_actual(r.id, username, actual, drawn, receipt.strip() or None, price)
                 st.success(
                     f"Recorded {float(actual):g} L at {float(price):.2f}/L "
                     "— sent for confirmation."

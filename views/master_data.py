@@ -7,7 +7,7 @@ from db import propose_asset, get_pending_assets, approve_asset, reject_asset
 ASSET_TYPES = ["vehicle", "generator", "equipment"]
 
 
-def master_data(email, is_admin):
+def master_data(username, is_admin):
     st.subheader("Propose a new asset")
     with st.form("propose_asset", clear_on_submit=True):
         name = st.text_input("Asset name")
@@ -17,7 +17,7 @@ def master_data(email, is_admin):
         if not name.strip():
             st.error("Asset name is required.")
         else:
-            propose_asset(name.strip(), asset_type, email)
+            propose_asset(name.strip(), asset_type, username)
             st.success(
                 f"Proposed '{name.strip()}'. It awaits admin approval before it "
                 "can be used in a requisition."
@@ -37,11 +37,11 @@ def master_data(email, is_admin):
                 st.write(f"**Proposed at:** {a.proposed_at:%Y-%m-%d %H:%M}")
                 approve_col, reject_col = st.columns(2)
                 if approve_col.button("Approve", key=f"appr_{a.id}", type="primary"):
-                    approve_asset(a.id, email)
+                    approve_asset(a.id, username)
                     st.success(f"'{a.name}' is now active.")
                     st.rerun()
                 if reject_col.button("Reject", key=f"rej_{a.id}"):
-                    reject_asset(a.id, email)
+                    reject_asset(a.id, username)
                     st.warning(f"'{a.name}' was rejected.")
                     st.rerun()
     elif not pending.empty:
