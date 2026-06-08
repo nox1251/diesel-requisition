@@ -192,6 +192,14 @@ def add_or_update_user(username, display_name, roles, password_hash=None):
         s.commit()
 
 
+def delete_user(username):
+    """Remove a user. Past requisitions keep the username as plain text."""
+    conn = get_conn()
+    with conn.session as s:
+        s.execute(text("DELETE FROM users WHERE username = :u"), {"u": username})
+        s.commit()
+
+
 def get_active_assets():
     """Active assets for the requisition dropdown, as a DataFrame of id + name."""
     conn = get_conn()

@@ -70,4 +70,4 @@ elif page == "Billing":
 elif page == "Master Data":
     master_data(username, "admin" in roles)
 elif page == "Manage Users":
-    manage_users()
+    manage_users(username)

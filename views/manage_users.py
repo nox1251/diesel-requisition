@@ -3,13 +3,13 @@
 import streamlit as st
 import streamlit_authenticator as stauth
 
-from db import get_all_users, add_or_update_user
+from db import get_all_users, add_or_update_user, delete_user
 
 ROLES = ["user", "manager", "purchaser", "admin"]
 NEW_USER = "(new user)"
 
 
-def manage_users():
+def manage_users(current_username):
     users = get_all_users()
 
     st.subheader("Users")
@@ -69,3 +69,19 @@ def manage_users():
         add_or_update_user(target, display_name.strip() or None, roles, password_hash)
         st.success(f"Saved user '{target}'.")
         st.rerun()
+
+    if editing:
+        st.divider()
+        st.subheader("Delete user")
+        admin_count = sum(1 for r in users.itertuples() if "admin" in r.roles)
+        target_is_admin = "admin" in default_roles
+        if choice == current_username:
+            st.caption("You can't delete the account you're logged in as.")
+        elif target_is_admin and admin_count <= 1:
+            st.caption("You can't delete the last admin.")
+        else:
+            confirm = st.checkbox(f"Yes, permanently delete '{choice}'")
+            if st.button("Delete user", disabled=not confirm):
+                delete_user(choice)
+                st.success(f"Deleted '{choice}'.")
+                st.rerun()

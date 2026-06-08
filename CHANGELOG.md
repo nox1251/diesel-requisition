@@ -4,7 +4,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); newest on top.
 
 ## [Unreleased]
 ### Added
-- Admin **Manage Users** screen: list users, add/update a user's display name, roles, and login password — all in-app. Login credentials moved into the database (`users.password_hash`, bcrypt), so adding a person no longer requires editing secrets. Secrets now only need the `[authenticator]` cookie config.
+- Admin **Manage Users** screen: list users, add/update a user's display name, roles, and login password, and delete a user (with confirm; blocked for your own account and the last admin) — all in-app. Login credentials moved into the database (`users.password_hash`, bcrypt), so adding a person no longer requires editing secrets. Secrets now only need the `[authenticator]` cookie config.
 - Username/password login for the deployed app (`streamlit-authenticator`); the signed-in email is matched against the `users` table for roles. Credentials and cookie key live in secrets.
 - `dev_mode` secret flag that enables the local "Dev: act as" role switcher; without it the switcher cannot appear (so it is never available on the deployed app).
 
