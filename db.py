@@ -394,3 +394,57 @@ def get_billing_lines(billing_id):
         params={"bid": int(billing_id)},
         ttl=0,
     )
+
+
+def propose_asset(name, asset_type, proposed_by):
+    """Propose a new asset; it starts as 'pending' until an admin approves it."""
+    conn = get_conn()
+    with conn.session as s:
+        s.execute(
+            text(
+                "INSERT INTO assets (name, asset_type, status, proposed_by) "
+                "VALUES (:name, :type, 'pending', :by)"
+            ),
+            {"name": name, "type": asset_type, "by": proposed_by},
+        )
+        s.commit()
+
+
+def get_pending_assets():
+    """Assets awaiting an admin's approval, oldest first."""
+    conn = get_conn()
+    return conn.query(
+        "SELECT id, name, asset_type, proposed_by, proposed_at "
+        "FROM assets WHERE status = 'pending' ORDER BY proposed_at",
+        ttl=0,
+    )
+
+
+def approve_asset(asset_id, approver):
+    """Approve a pending asset, making it active and selectable."""
+    conn = get_conn()
+    with conn.session as s:
+        s.execute(
+            text(
+                "UPDATE assets "
+                "SET status = 'active', approved_by = :by, approved_at = now() "
+                "WHERE id = :id AND status = 'pending'"
+            ),
+            {"by": approver, "id": int(asset_id)},
+        )
+        s.commit()
+
+
+def reject_asset(asset_id, approver):
+    """Reject a pending asset; it never becomes selectable."""
+    conn = get_conn()
+    with conn.session as s:
+        s.execute(
+            text(
+                "UPDATE assets "
+                "SET status = 'rejected', approved_by = :by, approved_at = now() "
+                "WHERE id = :id AND status = 'pending'"
+            ),
+            {"by": approver, "id": int(asset_id)},
+        )
+        s.commit()

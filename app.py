@@ -9,6 +9,7 @@ from views.approvals import approvals
 from views.pricing import pricing
 from views.confirm import confirm
 from views.billing import billing
+from views.master_data import master_data
 
 st.set_page_config(page_title="Diesel Requisition", page_icon="⛽")
 
@@ -64,5 +65,5 @@ elif page == "Confirm Receipts":
     confirm(email)
 elif page == "Billing":
     billing(email)
-else:
-    st.info("This screen is a placeholder — it will be built in a later stage.")
+elif page == "Master Data":
+    master_data(email, "admin" in roles)

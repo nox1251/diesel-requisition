@@ -93,7 +93,8 @@ diesel-requisition/
 │   ├── approvals.py    # Manager: approve / reject pending requests
 │   ├── pricing.py      # Purchaser: set the daily diesel price
 │   ├── confirm.py      # Purchaser: confirm actual vs receipt
-│   └── billing.py      # Purchaser: create billings + bill payment request
+│   ├── billing.py      # Purchaser: create billings + bill payment request
+│   └── master_data.py  # Propose assets; Admin approves → active
 ├── requirements.txt
 ├── secrets-template.toml
 ├── .gitignore
@@ -105,4 +106,4 @@ diesel-requisition/
 
 ## Current status
 
-**Stage C — Billing: complete.** On top of Stage B, the Purchaser groups confirmed (not-yet-billed) requests into a billing — tagging them `billed` so they drop out of the list — and views a bill payment request (line items + total) for any billing. The master-data screen (Stage D) is still a placeholder.
+**Stage D — Master data governance: complete. All stages (0, A–D) are built.** Users and Managers can propose new assets, which stay `pending` (not selectable) until an Admin approves them to `active` or rejects them. The full lifecycle is in place: propose/approve assets → request fuel → approve → set daily price → record actual litres drawn → confirm → bill → bill payment request.
