@@ -6,6 +6,7 @@ import streamlit_authenticator as stauth
 from db import get_all_users, add_or_update_user
 
 ROLES = ["user", "manager", "purchaser", "admin"]
+NEW_USER = "(new user)"
 
 
 def manage_users():
@@ -32,31 +33,39 @@ def manage_users():
 
     st.divider()
     st.subheader("Add or update a user")
-    st.caption(
-        "Existing username updates that user. Leave the password blank to keep "
-        "their current one; set a password to create a login or reset it."
-    )
-    existing_usernames = set(users["username"]) if not users.empty else set()
 
-    with st.form("manage_user", clear_on_submit=True):
-        username = st.text_input("Username")
-        display_name = st.text_input("Display name")
-        roles = st.multiselect("Roles", ROLES)
+    usernames = list(users["username"]) if not users.empty else []
+    choice = st.selectbox("Edit existing or add new", [NEW_USER] + usernames)
+    editing = choice != NEW_USER
+    if editing:
+        row = users[users["username"] == choice].iloc[0]
+        default_name = row["display_name"] or ""
+        default_roles = list(row["roles"])
+    else:
+        default_name, default_roles = "", []
+
+    # Key widgets by the selection so they refill when a different user is picked.
+    with st.form(f"manage_user_{choice}"):
+        username = st.text_input(
+            "Username", value=choice if editing else "", disabled=editing
+        )
+        display_name = st.text_input("Display name", value=default_name)
+        roles = st.multiselect("Roles", ROLES, default=default_roles)
         password = st.text_input(
-            "Password (blank = keep existing)", type="password"
+            "Password (blank = keep existing)" if editing else "Password",
+            type="password",
         )
         submitted = st.form_submit_button("Save user")
 
     if submitted:
-        username = username.strip()
-        if not username:
+        target = choice if editing else username.strip()
+        if not target:
             st.error("Username is required.")
             return
-        is_new = username not in existing_usernames
-        if is_new and not password:
+        if not editing and not password:
             st.error("A password is required to create a new user.")
             return
         password_hash = stauth.Hasher.hash(password) if password else None
-        add_or_update_user(username, display_name.strip() or None, roles, password_hash)
-        st.success(f"Saved user '{username}'.")
+        add_or_update_user(target, display_name.strip() or None, roles, password_hash)
+        st.success(f"Saved user '{target}'.")
         st.rerun()
