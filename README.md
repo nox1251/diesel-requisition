@@ -60,14 +60,13 @@ in-app login; access is instead gated by the app's own login (below).
 
 - `[connections.postgresql] url` — the Neon connection string.
 - `[authenticator]` — `cookie_name`, `cookie_key` (random), `cookie_expiry_days`.
-- `[credentials.usernames.<username>]` — one block per user with `name` and
-  `password` (auto-hashed at runtime). The username must match a row in the
-  `users` table.
 - Do **not** set `dev_mode` here.
 
 **Authentication:** the deployed app gates access behind a username/password
-login (`streamlit-authenticator`). The signed-in username is matched against the
-`users` table to determine roles; a username with no matching row gets no access.
+login (`streamlit-authenticator`). Usernames, bcrypt password hashes, and roles
+all live in the `users` table and are managed in-app via **Admin → Manage
+Users** — nothing about users goes in secrets. A username with no roles gets no
+access; one with no password hash cannot log in.
 (Native Google sign-in via `st.login()` was attempted but does not work on
 Streamlit Community Cloud — its auth proxy breaks the OAuth callback.)
 
@@ -75,7 +74,7 @@ Streamlit Community Cloud — its auth proxy breaks the OAuth callback.)
 
 Five tables, created once in Stage 0 (no migrations between stages):
 
-- **users** — `username` (PK), `display_name`, `roles[]`.
+- **users** — `username` (PK), `display_name`, `roles[]`, `password_hash` (bcrypt; NULL = cannot log in).
 - **assets** — equipment master data; `status` is `pending` → `active` / `rejected`. Only `active` assets appear in the requisition dropdown.
 - **daily_prices** — one `price_per_liter` per `price_date`.
 - **billings** — a group of confirmed requisitions billed together.
@@ -94,7 +93,8 @@ diesel-requisition/
 │   ├── pricing.py      # Purchaser: set the daily diesel price
 │   ├── confirm.py      # Purchaser: confirm actual vs receipt
 │   ├── billing.py      # Purchaser: create billings + bill payment request
-│   └── master_data.py  # Propose assets; Admin approves → active
+│   ├── master_data.py  # Propose assets; Admin approves → active
+│   └── manage_users.py # Admin: manage users (roles + passwords)
 ├── requirements.txt
 ├── secrets-template.toml
 ├── .gitignore

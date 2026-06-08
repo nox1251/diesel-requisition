@@ -10,6 +10,7 @@ from views.pricing import pricing
 from views.confirm import confirm
 from views.billing import billing
 from views.master_data import master_data
+from views.manage_users import manage_users
 
 st.set_page_config(page_title="Diesel Requisition", page_icon="⛽")
 
@@ -34,6 +35,7 @@ PAGES = [
     ("Confirm Receipts", ["purchaser"]),
     ("Billing", ["purchaser"]),
     ("Master Data", ["user", "manager"]),
+    ("Manage Users", ["admin"]),
 ]
 
 available = [
@@ -67,3 +69,5 @@ elif page == "Billing":
     billing(username)
 elif page == "Master Data":
     master_data(username, "admin" in roles)
+elif page == "Manage Users":
+    manage_users()

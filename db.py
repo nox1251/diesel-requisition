@@ -9,9 +9,10 @@ from sqlalchemy.exc import OperationalError
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS users (
-    username        TEXT PRIMARY KEY,
-    display_name TEXT,
-    roles        TEXT[] NOT NULL DEFAULT '{}'
+    username      TEXT PRIMARY KEY,
+    display_name  TEXT,
+    roles         TEXT[] NOT NULL DEFAULT '{}',
+    password_hash TEXT                              -- bcrypt; NULL = cannot log in
 );
 
 CREATE TABLE IF NOT EXISTS assets (
@@ -140,6 +141,55 @@ def get_user_roles(username: str) -> list[str]:
     if rows.empty:
         return []
     return list(rows.iloc[0]["roles"])
+
+
+def get_login_credentials():
+    """Build the streamlit-authenticator credentials dict from the users table.
+    Only users with a password_hash can log in."""
+    conn = get_conn()
+    rows = conn.query(
+        "SELECT username, display_name, password_hash FROM users "
+        "WHERE password_hash IS NOT NULL",
+        ttl=0,
+    )
+    return {
+        "usernames": {
+            r.username: {
+                "name": r.display_name or r.username,
+                "password": r.password_hash,
+            }
+            for r in rows.itertuples()
+        }
+    }
+
+
+def get_all_users():
+    """All users for the admin management screen."""
+    conn = get_conn()
+    return conn.query(
+        "SELECT username, display_name, roles, "
+        "       (password_hash IS NOT NULL) AS has_login "
+        "FROM users ORDER BY username",
+        ttl=0,
+    )
+
+
+def add_or_update_user(username, display_name, roles, password_hash=None):
+    """Create or update a user. A NULL password_hash keeps the existing one."""
+    conn = get_conn()
+    with conn.session as s:
+        s.execute(
+            text(
+                "INSERT INTO users (username, display_name, roles, password_hash) "
+                "VALUES (:u, :dn, :roles, :ph) "
+                "ON CONFLICT (username) DO UPDATE SET "
+                "    display_name = EXCLUDED.display_name, "
+                "    roles = EXCLUDED.roles, "
+                "    password_hash = COALESCE(EXCLUDED.password_hash, users.password_hash)"
+            ),
+            {"u": username, "dn": display_name, "roles": roles, "ph": password_hash},
+        )
+        s.commit()
 
 
 def get_active_assets():
