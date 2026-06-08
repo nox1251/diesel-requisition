@@ -89,8 +89,10 @@ diesel-requisition/
 ├── db.py               # connection, schema init, query helpers, seed data
 ├── auth.py             # current user, role checks, local dev role override
 ├── views/
-│   ├── requisition.py  # User: new request + my requests
-│   └── approvals.py    # Manager: approve / reject pending requests
+│   ├── requisition.py  # User: new request, my requests, record fuel drawn
+│   ├── approvals.py    # Manager: approve / reject pending requests
+│   ├── pricing.py      # Purchaser: set the daily diesel price
+│   └── confirm.py      # Purchaser: confirm actual vs receipt
 ├── requirements.txt
 ├── secrets-template.toml
 ├── .gitignore
@@ -102,4 +104,4 @@ diesel-requisition/
 
 ## Current status
 
-**Stage A — Requisition core: complete.** Users can create requisitions and track their status; managers can approve or reject (with a reason). Built on the Stage 0 foundation (schema, seed data, auth with dev role switcher, role-based navigation). Pricing, confirmation, billing, and master-data screens (Stages B–D) are still placeholders.
+**Stage B — Actualisation, daily price, confirmation: complete.** On top of Stage A (create/approve requisitions), the Purchaser sets a daily diesel price; users encode actual litres + drawn date on their approved requests (snapshotting that day's price, blocked if none is set); the Purchaser confirms actual vs receipt. Billing and master-data screens (Stages C–D) are still placeholders.

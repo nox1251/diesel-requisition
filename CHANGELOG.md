@@ -14,6 +14,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); newest on top.
 ### Removed
 - Google OIDC sign-in (`st.login()` / `Authlib` / `httpx`): native Streamlit OAuth does not work on Streamlit Community Cloud, whose auth proxy breaks the OAuth callback. Replaced with username/password login.
 
+## [Stage B] - 2026-06-08
+### Added
+- Purchaser "Daily Price" screen: set/update the diesel price for a date; shows the price already set for that date.
+- User "Record Fuel Drawn" screen: encode actual litres + drawn date (+ optional receipt no.) on own approved requests. Snapshots the drawn date's price as `unit_price` and moves the request to `for_confirmation`. Blocks with a clear message if no price is set for that drawn date.
+- Purchaser "Confirm Receipts" screen: lists `for_confirmation` requests with requested vs actual, drawn date, and computed amount; Confirm → `confirmed`, stamping who/when.
+- `db.py` helpers: `get_price_for_date`, `set_daily_price`, `get_my_approved_requisitions`, `update_actual`, `get_for_confirmation_requisitions`, `confirm_requisition`.
+
+### Changed
+- "My Requests" now also shows actual litres, drawn date, and amount once encoded.
+
 ## [Stage A] - 2026-06-08
 ### Added
 - User requisition form (request date, active-asset dropdown, litres, purpose) creating a `pending` requisition, plus a "My Requests" table showing each request's status.

@@ -4,7 +4,14 @@ import datetime as dt
 
 import streamlit as st
 
-from db import get_active_assets, create_requisition, get_my_requisitions
+from db import (
+    get_active_assets,
+    create_requisition,
+    get_my_requisitions,
+    get_my_approved_requisitions,
+    get_price_for_date,
+    update_actual,
+)
 
 STATUS_LABELS = {
     "pending": "Pending",
@@ -58,6 +65,48 @@ def my_requests(email):
             "requested_liters": "Litres",
             "purpose": "Purpose",
             "status": "Status",
+            "actual_liters": "Actual",
+            "drawn_date": "Drawn",
+            "amount": st.column_config.NumberColumn("Amount", format="%.2f"),
             "reject_reason": "Reject reason",
         },
     )
+
+
+def encode_actual(email):
+    rows = get_my_approved_requisitions(email)
+    if rows.empty:
+        st.info("You have no approved requests awaiting actual litres.")
+        return
+
+    for r in rows.itertuples():
+        title = f"#{r.id} · {r.asset} · requested {float(r.requested_liters):g} L"
+        with st.expander(title):
+            st.write(f"**Request date:** {r.request_date}")
+            st.write(f"**Purpose:** {r.purpose or '—'}")
+            with st.form(f"actual_{r.id}", clear_on_submit=True):
+                actual = st.number_input(
+                    "Actual litres drawn", min_value=0.0, step=1.0, key=f"al_{r.id}"
+                )
+                drawn = st.date_input(
+                    "Date drawn", value=dt.date.today(), key=f"dd_{r.id}"
+                )
+                receipt = st.text_input("Receipt no. (optional)", key=f"rn_{r.id}")
+                submitted = st.form_submit_button("Submit actual")
+            if submitted:
+                if actual <= 0:
+                    st.error("Actual litres must be greater than zero.")
+                    continue
+                price = get_price_for_date(drawn)
+                if price is None:
+                    st.error(
+                        f"No diesel price is set for {drawn}. Ask the Purchaser to "
+                        "set the price for that day, then try again."
+                    )
+                    continue
+                update_actual(r.id, email, actual, drawn, receipt.strip() or None, price)
+                st.success(
+                    f"Recorded {float(actual):g} L at {float(price):.2f}/L "
+                    "— sent for confirmation."
+                )
+                st.rerun()

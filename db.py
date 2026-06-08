@@ -175,8 +175,9 @@ def get_my_requisitions(email):
     """All requisitions raised by this user, newest first, with the asset name."""
     conn = get_conn()
     return conn.query(
-        "SELECT r.request_date, a.name AS asset, r.requested_liters, "
-        "       r.purpose, r.status, r.reject_reason "
+        "SELECT r.request_date, a.name AS asset, r.requested_liters, r.purpose, "
+        "       r.status, r.actual_liters, r.drawn_date, "
+        "       r.actual_liters * r.unit_price AS amount, r.reject_reason "
         "FROM requisitions r JOIN assets a ON a.id = r.asset_id "
         "WHERE r.requested_by = :email "
         "ORDER BY r.created_at DESC",
@@ -225,5 +226,102 @@ def reject_requisition(req_id, approver, reason):
                 "WHERE id = :id AND status = 'pending'"
             ),
             {"by": approver, "id": req_id, "reason": reason},
+        )
+        s.commit()
+
+
+def get_price_for_date(price_date):
+    """The diesel price set for a given date, or None if none is set."""
+    conn = get_conn()
+    rows = conn.query(
+        "SELECT price_per_liter FROM daily_prices WHERE price_date = :d",
+        params={"d": price_date},
+        ttl=0,
+    )
+    if rows.empty:
+        return None
+    return rows.iloc[0]["price_per_liter"]
+
+
+def set_daily_price(price_date, price, set_by):
+    """Insert or update the diesel price for a date."""
+    conn = get_conn()
+    with conn.session as s:
+        s.execute(
+            text(
+                "INSERT INTO daily_prices (price_date, price_per_liter, set_by, set_at) "
+                "VALUES (:d, :p, :by, now()) "
+                "ON CONFLICT (price_date) DO UPDATE "
+                "SET price_per_liter = EXCLUDED.price_per_liter, "
+                "    set_by = EXCLUDED.set_by, set_at = now()"
+            ),
+            {"d": price_date, "p": price, "by": set_by},
+        )
+        s.commit()
+
+
+def get_my_approved_requisitions(email):
+    """This user's approved requests awaiting actual litres, oldest first."""
+    conn = get_conn()
+    return conn.query(
+        "SELECT r.id, r.request_date, a.name AS asset, r.requested_liters, r.purpose "
+        "FROM requisitions r JOIN assets a ON a.id = r.asset_id "
+        "WHERE r.requested_by = :email AND r.status = 'approved' "
+        "ORDER BY r.created_at",
+        params={"email": email},
+        ttl=0,
+    )
+
+
+def update_actual(req_id, email, actual_liters, drawn_date, receipt_no, unit_price):
+    """Record actual litres + drawn date on an approved request, snapshotting the
+    drawn date's price, and move it to 'for_confirmation'."""
+    conn = get_conn()
+    with conn.session as s:
+        s.execute(
+            text(
+                "UPDATE requisitions "
+                "SET actual_liters = :al, drawn_date = :dd, receipt_no = :rn, "
+                "    unit_price = :up, actual_filled_at = now(), "
+                "    status = 'for_confirmation' "
+                "WHERE id = :id AND requested_by = :email AND status = 'approved'"
+            ),
+            {
+                "al": actual_liters,
+                "dd": drawn_date,
+                "rn": receipt_no,
+                "up": unit_price,
+                "id": req_id,
+                "email": email,
+            },
+        )
+        s.commit()
+
+
+def get_for_confirmation_requisitions():
+    """Requests awaiting the Purchaser's confirmation, with computed amount."""
+    conn = get_conn()
+    return conn.query(
+        "SELECT r.id, r.request_date, r.requested_by, a.name AS asset, "
+        "       r.requested_liters, r.actual_liters, r.drawn_date, r.unit_price, "
+        "       r.actual_liters * r.unit_price AS amount, r.receipt_no "
+        "FROM requisitions r JOIN assets a ON a.id = r.asset_id "
+        "WHERE r.status = 'for_confirmation' "
+        "ORDER BY r.created_at",
+        ttl=0,
+    )
+
+
+def confirm_requisition(req_id, confirmer):
+    """Confirm actual vs receipt, stamping who and when."""
+    conn = get_conn()
+    with conn.session as s:
+        s.execute(
+            text(
+                "UPDATE requisitions "
+                "SET status = 'confirmed', confirmed_by = :by, confirmed_at = now() "
+                "WHERE id = :id AND status = 'for_confirmation'"
+            ),
+            {"by": confirmer, "id": req_id},
         )
         s.commit()

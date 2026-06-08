@@ -4,8 +4,10 @@ import streamlit as st
 
 from auth import current_user, has_role
 from db import init_schema, get_user_roles
-from views.requisition import new_requisition, my_requests
+from views.requisition import new_requisition, my_requests, encode_actual
 from views.approvals import approvals
+from views.pricing import pricing
+from views.confirm import confirm
 
 st.set_page_config(page_title="Diesel Requisition", page_icon="⛽")
 
@@ -24,6 +26,7 @@ st.sidebar.caption("Roles: " + (", ".join(roles) if roles else "none"))
 PAGES = [
     ("New Requisition", ["user", "manager"]),
     ("My Requests", ["user", "manager"]),
+    ("Record Fuel Drawn", ["user"]),
     ("Approvals", ["manager"]),
     ("Daily Price", ["purchaser"]),
     ("Confirm Receipts", ["purchaser"]),
@@ -50,7 +53,13 @@ if page == "New Requisition":
     new_requisition(email)
 elif page == "My Requests":
     my_requests(email)
+elif page == "Record Fuel Drawn":
+    encode_actual(email)
 elif page == "Approvals":
     approvals(email)
+elif page == "Daily Price":
+    pricing(email)
+elif page == "Confirm Receipts":
+    confirm(email)
 else:
     st.info("This screen is a placeholder — it will be built in a later stage.")
