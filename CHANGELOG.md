@@ -9,6 +9,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); newest on top.
 
 ### Changed
 - `auth.py` no longer relies on Streamlit Community Cloud exposing the viewer's email (which it stopped doing in Streamlit 1.42+); production now requires explicit Google sign-in.
+- Database connection is more resilient to Neon's serverless idle/wake cycle: `pool_pre_ping` + `pool_recycle` replace stale connections, and `init_schema()` retries transient disconnects.
+
+### Fixed
+- Sign-in failing with "missing Authlib" — added `httpx`, required by Authlib's `starlette_client` import.
 
 ## [Stage A] - 2026-06-08
 ### Added

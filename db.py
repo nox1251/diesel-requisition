@@ -1,7 +1,10 @@
 """Database connection, schema initialisation, and small query helpers."""
 
+import time
+
 import streamlit as st
 from sqlalchemy import text
+from sqlalchemy.exc import OperationalError
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS users (
@@ -81,33 +84,48 @@ SEED_ASSETS = [
 
 
 def get_conn():
-    return st.connection("postgresql", type="sql")
+    # pool_pre_ping replaces connections Neon has dropped while idle; pool_recycle
+    # avoids reusing long-lived sockets the serverless endpoint may have closed.
+    return st.connection(
+        "postgresql", type="sql", pool_pre_ping=True, pool_recycle=300
+    )
 
 
 def init_schema():
-    """Create all tables and seed initial data. Safe to run on every start."""
+    """Create all tables and seed initial data. Safe to run on every start.
+
+    Retries transient disconnects: Neon's serverless compute can drop the first
+    connection while it wakes from idle.
+    """
     conn = get_conn()
-    with conn.session as s:
-        s.execute(text(SCHEMA_SQL))
-        for email, name, roles in SEED_USERS:
-            s.execute(
-                text(
-                    "INSERT INTO users (email, display_name, roles) "
-                    "VALUES (:email, :name, :roles) ON CONFLICT (email) DO NOTHING"
-                ),
-                {"email": email, "name": name, "roles": roles},
-            )
-        already_seeded = s.execute(text("SELECT COUNT(*) FROM assets")).scalar()
-        if not already_seeded:
-            for name, asset_type in SEED_ASSETS:
-                s.execute(
-                    text(
-                        "INSERT INTO assets (name, asset_type, status, approved_by, approved_at) "
-                        "VALUES (:name, :type, 'active', 'system', now())"
-                    ),
-                    {"name": name, "type": asset_type},
-                )
-        s.commit()
+    for attempt in range(3):
+        try:
+            with conn.session as s:
+                s.execute(text(SCHEMA_SQL))
+                for email, name, roles in SEED_USERS:
+                    s.execute(
+                        text(
+                            "INSERT INTO users (email, display_name, roles) "
+                            "VALUES (:email, :name, :roles) ON CONFLICT (email) DO NOTHING"
+                        ),
+                        {"email": email, "name": name, "roles": roles},
+                    )
+                already_seeded = s.execute(text("SELECT COUNT(*) FROM assets")).scalar()
+                if not already_seeded:
+                    for name, asset_type in SEED_ASSETS:
+                        s.execute(
+                            text(
+                                "INSERT INTO assets (name, asset_type, status, approved_by, approved_at) "
+                                "VALUES (:name, :type, 'active', 'system', now())"
+                            ),
+                            {"name": name, "type": asset_type},
+                        )
+                s.commit()
+            return
+        except OperationalError:
+            if attempt == 2:
+                raise
+            time.sleep(1.5)
 
 
 def get_user_roles(email: str) -> list[str]:
