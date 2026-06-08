@@ -49,7 +49,7 @@ def master_data(username, is_admin):
         st.dataframe(
             pending[["name", "asset_type", "proposed_by"]],
             hide_index=True,
-            use_container_width=True,
+            width="stretch",
             column_config={
                 "name": "Name",
                 "asset_type": "Type",

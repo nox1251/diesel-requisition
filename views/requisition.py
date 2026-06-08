@@ -58,7 +58,7 @@ def my_requests(username):
     st.dataframe(
         rows,
         hide_index=True,
-        use_container_width=True,
+        width="stretch",
         column_config={
             "request_date": "Date",
             "asset": "Asset",

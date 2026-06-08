@@ -31,7 +31,7 @@ def _create_billing(username):
     st.dataframe(
         display,
         hide_index=True,
-        use_container_width=True,
+        width="stretch",
         column_config={
             "id": "ID",
             "request_date": "Requested",
@@ -93,7 +93,7 @@ def _view_billings():
     st.dataframe(
         lines,
         hide_index=True,
-        use_container_width=True,
+        width="stretch",
         column_config={
             "drawn_date": "Drawn",
             "asset": "Asset",

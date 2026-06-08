@@ -22,7 +22,7 @@ def manage_users(current_username):
         st.dataframe(
             show,
             hide_index=True,
-            use_container_width=True,
+            width="stretch",
             column_config={
                 "username": "Username",
                 "display_name": "Name",
