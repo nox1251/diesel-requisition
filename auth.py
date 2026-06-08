@@ -13,12 +13,13 @@ Secrets layout for the deployed app:
     cookie_key = "<random string>"
     cookie_expiry_days = 30
 
-    [credentials.usernames."denver.so@gmail.com"]
+    [credentials.usernames.denver]          # the login username
     name = "Denver"
-    email = "denver.so@gmail.com"
-    password = "<the user's password>"   # auto-hashed at runtime
+    email = "denver.so@gmail.com"           # must match a row in the users table
+    password = "<the user's password>"      # auto-hashed at runtime
 
-Each username should be the user's email, matching a row in the `users` table.
+People log in with the username, but the app identifies them by the linked email,
+which is matched against the `users` table for roles.
 """
 
 import streamlit as st
@@ -34,16 +35,6 @@ def _to_plain(obj):
     return obj
 
 
-def _build_authenticator() -> stauth.Authenticate:
-    cfg = st.secrets["authenticator"]
-    return stauth.Authenticate(
-        _to_plain(st.secrets["credentials"]),
-        cfg["cookie_name"],
-        cfg["cookie_key"],
-        cfg.get("cookie_expiry_days", 30),
-    )
-
-
 def current_user() -> str:
     """Return the current user's email, gating access by login when deployed."""
     # Local development: act as any role without logging in.
@@ -51,12 +42,22 @@ def current_user() -> str:
         return st.sidebar.selectbox("Dev: act as", DEV_ACCOUNTS)
 
     # Deployed: require a username/password login.
-    authenticator = _build_authenticator()
+    credentials = _to_plain(st.secrets["credentials"])
+    cfg = st.secrets["authenticator"]
+    authenticator = stauth.Authenticate(
+        credentials,
+        cfg["cookie_name"],
+        cfg["cookie_key"],
+        cfg.get("cookie_expiry_days", 30),
+    )
     authenticator.login(location="main")
     status = st.session_state.get("authentication_status")
     if status:
         authenticator.logout("Log out", location="sidebar")
-        return st.session_state["username"]
+        # People log in with a username; identify them by the linked email.
+        username = st.session_state["username"]
+        user = credentials.get("usernames", {}).get(username, {})
+        return user.get("email") or username
     if status is False:
         st.error("Username or password is incorrect.")
     st.stop()
