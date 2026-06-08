@@ -52,19 +52,24 @@ Live app: **https://diesel-requisition.streamlit.app** (private — viewers must
 
 Deployed on **Streamlit Community Cloud**, backed by a **Neon** PostgreSQL database.
 
+The app must be set to **public** in Streamlit Cloud (Share → "Make this app
+public"). Community Cloud's auth proxy for private apps is incompatible with
+in-app login; access is instead gated by the app's own login (below).
+
 **Secrets** (set in the Streamlit Cloud app's *Secrets* box, never committed):
 
 - `[connections.postgresql] url` — the Neon connection string.
-- `[auth]` — Google OIDC sign-in (`client_id`, `client_secret`, `cookie_secret`,
-  `redirect_uri = https://diesel-requisition.streamlit.app/oauth2callback`,
-  `server_metadata_url = https://accounts.google.com/.well-known/openid-configuration`).
+- `[authenticator]` — `cookie_name`, `cookie_key` (random), `cookie_expiry_days`.
+- `[credentials.usernames."<email>"]` — one block per user with `name`, `email`,
+  and `password` (auto-hashed at runtime). The username key must be the user's
+  email and match a row in the `users` table.
 - Do **not** set `dev_mode` here.
 
-**Authentication:** the deployed app gates access behind Google sign-in
-(`st.login()`). The signed-in Google email is matched against the `users` table
-to determine roles; an email with no matching row gets no access. (Streamlit
-Community Cloud no longer exposes the viewer's email to apps automatically, so
-the app configures its own Google OIDC provider.)
+**Authentication:** the deployed app gates access behind a username/password
+login (`streamlit-authenticator`). The signed-in email is matched against the
+`users` table to determine roles; an email with no matching row gets no access.
+(Native Google sign-in via `st.login()` was attempted but does not work on
+Streamlit Community Cloud — its auth proxy breaks the OAuth callback.)
 
 ## Database schema (brief)
 
