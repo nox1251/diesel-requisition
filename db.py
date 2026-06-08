@@ -7,6 +7,9 @@ import streamlit as st
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
 
+# Reads are cached this long; every write clears the cache so data stays fresh.
+CACHE_TTL = 300
+
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS users (
     username      TEXT PRIMARY KEY,
@@ -123,6 +126,7 @@ def init_schema():
                             {"name": name, "type": asset_type},
                         )
                 s.commit()
+                st.cache_data.clear()
             return
         except OperationalError:
             if attempt == 2:
@@ -136,7 +140,7 @@ def get_user_roles(username: str) -> list[str]:
     rows = conn.query(
         "SELECT roles FROM users WHERE username = :username",
         params={"username": username},
-        ttl=0,
+        ttl=CACHE_TTL,
     )
     if rows.empty:
         return []
@@ -150,7 +154,7 @@ def get_login_credentials():
     rows = conn.query(
         "SELECT username, display_name, password_hash FROM users "
         "WHERE password_hash IS NOT NULL",
-        ttl=0,
+        ttl=CACHE_TTL,
     )
     return {
         "usernames": {
@@ -170,7 +174,7 @@ def get_all_users():
         "SELECT username, display_name, roles, "
         "       (password_hash IS NOT NULL) AS has_login "
         "FROM users ORDER BY username",
-        ttl=0,
+        ttl=CACHE_TTL,
     )
 
 
@@ -190,6 +194,7 @@ def add_or_update_user(username, display_name, roles, password_hash=None):
             {"u": username, "dn": display_name, "roles": roles, "ph": password_hash},
         )
         s.commit()
+        st.cache_data.clear()
 
 
 def delete_user(username):
@@ -198,6 +203,7 @@ def delete_user(username):
     with conn.session as s:
         s.execute(text("DELETE FROM users WHERE username = :u"), {"u": username})
         s.commit()
+        st.cache_data.clear()
 
 
 def get_active_assets():
@@ -205,7 +211,7 @@ def get_active_assets():
     conn = get_conn()
     return conn.query(
         "SELECT id, name FROM assets WHERE status = 'active' ORDER BY name",
-        ttl=0,
+        ttl=CACHE_TTL,
     )
 
 
@@ -228,6 +234,7 @@ def create_requisition(requested_by, asset_id, requested_liters, purpose, reques
             },
         )
         s.commit()
+        st.cache_data.clear()
 
 
 def get_my_requisitions(username):
@@ -241,7 +248,7 @@ def get_my_requisitions(username):
         "WHERE r.requested_by = :username "
         "ORDER BY r.created_at DESC",
         params={"username": username},
-        ttl=0,
+        ttl=CACHE_TTL,
     )
 
 
@@ -254,7 +261,7 @@ def get_pending_requisitions():
         "FROM requisitions r JOIN assets a ON a.id = r.asset_id "
         "WHERE r.status = 'pending' "
         "ORDER BY r.created_at",
-        ttl=0,
+        ttl=CACHE_TTL,
     )
 
 
@@ -271,6 +278,7 @@ def approve_requisition(req_id, approver):
             {"by": approver, "id": int(req_id)},
         )
         s.commit()
+        st.cache_data.clear()
 
 
 def reject_requisition(req_id, approver, reason):
@@ -287,6 +295,7 @@ def reject_requisition(req_id, approver, reason):
             {"by": approver, "id": int(req_id), "reason": reason},
         )
         s.commit()
+        st.cache_data.clear()
 
 
 def get_price_for_date(price_date):
@@ -295,7 +304,7 @@ def get_price_for_date(price_date):
     rows = conn.query(
         "SELECT price_per_liter FROM daily_prices WHERE price_date = :d",
         params={"d": price_date},
-        ttl=0,
+        ttl=CACHE_TTL,
     )
     if rows.empty:
         return None
@@ -318,6 +327,7 @@ def set_daily_price(price_date, price, set_by):
             {"d": price_date, "p": price, "by": set_by},
         )
         s.commit()
+        st.cache_data.clear()
 
 
 def get_my_approved_requisitions(username):
@@ -329,7 +339,7 @@ def get_my_approved_requisitions(username):
         "WHERE r.requested_by = :username AND r.status = 'approved' "
         "ORDER BY r.created_at",
         params={"username": username},
-        ttl=0,
+        ttl=CACHE_TTL,
     )
 
 
@@ -356,6 +366,7 @@ def update_actual(req_id, username, actual_liters, drawn_date, receipt_no, unit_
             },
         )
         s.commit()
+        st.cache_data.clear()
 
 
 def get_for_confirmation_requisitions():
@@ -368,7 +379,7 @@ def get_for_confirmation_requisitions():
         "FROM requisitions r JOIN assets a ON a.id = r.asset_id "
         "WHERE r.status = 'for_confirmation' "
         "ORDER BY r.created_at",
-        ttl=0,
+        ttl=CACHE_TTL,
     )
 
 
@@ -385,6 +396,7 @@ def confirm_requisition(req_id, confirmer):
             {"by": confirmer, "id": int(req_id)},
         )
         s.commit()
+        st.cache_data.clear()
 
 
 def get_billable_requisitions():
@@ -397,7 +409,7 @@ def get_billable_requisitions():
         "FROM requisitions r JOIN assets a ON a.id = r.asset_id "
         "WHERE r.status = 'confirmed' AND r.billing_id IS NULL "
         "ORDER BY r.confirmed_at",
-        ttl=0,
+        ttl=CACHE_TTL,
     )
 
 
@@ -423,6 +435,7 @@ def create_billing(created_by, req_ids, supplier_ref, note):
                 {"bid": int(billing_id), "by": created_by, "id": int(req_id)},
             )
         s.commit()
+        st.cache_data.clear()
         return billing_id
 
 
@@ -435,7 +448,7 @@ def get_billings():
         "       COALESCE(SUM(r.actual_liters * r.unit_price), 0) AS total "
         "FROM billings b LEFT JOIN requisitions r ON r.billing_id = b.id "
         "GROUP BY b.id ORDER BY b.created_at DESC",
-        ttl=0,
+        ttl=CACHE_TTL,
     )
 
 
@@ -450,7 +463,7 @@ def get_billing_lines(billing_id):
         "WHERE r.billing_id = :bid "
         "ORDER BY r.drawn_date",
         params={"bid": int(billing_id)},
-        ttl=0,
+        ttl=CACHE_TTL,
     )
 
 
@@ -466,6 +479,7 @@ def propose_asset(name, asset_type, proposed_by):
             {"name": name, "type": asset_type, "by": proposed_by},
         )
         s.commit()
+        st.cache_data.clear()
 
 
 def get_pending_assets():
@@ -474,7 +488,7 @@ def get_pending_assets():
     return conn.query(
         "SELECT id, name, asset_type, proposed_by, proposed_at "
         "FROM assets WHERE status = 'pending' ORDER BY proposed_at",
-        ttl=0,
+        ttl=CACHE_TTL,
     )
 
 
@@ -491,6 +505,7 @@ def approve_asset(asset_id, approver):
             {"by": approver, "id": int(asset_id)},
         )
         s.commit()
+        st.cache_data.clear()
 
 
 def reject_asset(asset_id, approver):
@@ -506,3 +521,4 @@ def reject_asset(asset_id, approver):
             {"by": approver, "id": int(asset_id)},
         )
         s.commit()
+        st.cache_data.clear()

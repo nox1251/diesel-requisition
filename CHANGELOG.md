@@ -3,6 +3,9 @@ All notable changes to this project are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); newest on top.
 
 ## [Unreleased]
+### Changed
+- Database reads are now cached (`ttl=300`) instead of hitting the DB on every rerun; each write clears the cache so data stays fresh. Cuts redundant round-trips, especially noticeable when the app server and database are far apart.
+
 ### Added
 - Admin **Manage Users** screen: list users, add/update a user's display name, roles, and login password, and delete a user (with confirm; blocked for your own account and the last admin) — all in-app. Login credentials moved into the database (`users.password_hash`, bcrypt), so adding a person no longer requires editing secrets. Secrets now only need the `[authenticator]` cookie config.
 - Username/password login for the deployed app (`streamlit-authenticator`); the signed-in email is matched against the `users` table for roles. Credentials and cookie key live in secrets.
