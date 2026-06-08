@@ -1,6 +1,7 @@
 """Database connection, schema initialisation, and small query helpers."""
 
 import time
+from decimal import Decimal
 
 import streamlit as st
 from sqlalchemy import text
@@ -163,8 +164,8 @@ def create_requisition(requested_by, asset_id, requested_liters, purpose, reques
             {
                 "date": request_date,
                 "by": requested_by,
-                "asset_id": asset_id,
-                "liters": requested_liters,
+                "asset_id": int(asset_id),
+                "liters": float(requested_liters),
                 "purpose": purpose,
             },
         )
@@ -209,7 +210,7 @@ def approve_requisition(req_id, approver):
                 "SET status = 'approved', approved_by = :by, approved_at = now() "
                 "WHERE id = :id AND status = 'pending'"
             ),
-            {"by": approver, "id": req_id},
+            {"by": approver, "id": int(req_id)},
         )
         s.commit()
 
@@ -225,7 +226,7 @@ def reject_requisition(req_id, approver, reason):
                 "    reject_reason = :reason "
                 "WHERE id = :id AND status = 'pending'"
             ),
-            {"by": approver, "id": req_id, "reason": reason},
+            {"by": approver, "id": int(req_id), "reason": reason},
         )
         s.commit()
 
@@ -240,7 +241,8 @@ def get_price_for_date(price_date):
     )
     if rows.empty:
         return None
-    return rows.iloc[0]["price_per_liter"]
+    # Convert away from numpy/pandas types so psycopg2 can bind it as a parameter.
+    return Decimal(str(rows.iloc[0]["price_per_liter"]))
 
 
 def set_daily_price(price_date, price, set_by):
@@ -287,11 +289,11 @@ def update_actual(req_id, email, actual_liters, drawn_date, receipt_no, unit_pri
                 "WHERE id = :id AND requested_by = :email AND status = 'approved'"
             ),
             {
-                "al": actual_liters,
+                "al": float(actual_liters),
                 "dd": drawn_date,
                 "rn": receipt_no,
-                "up": unit_price,
-                "id": req_id,
+                "up": Decimal(str(unit_price)),
+                "id": int(req_id),
                 "email": email,
             },
         )
@@ -322,6 +324,6 @@ def confirm_requisition(req_id, confirmer):
                 "SET status = 'confirmed', confirmed_by = :by, confirmed_at = now() "
                 "WHERE id = :id AND status = 'for_confirmation'"
             ),
-            {"by": confirmer, "id": req_id},
+            {"by": confirmer, "id": int(req_id)},
         )
         s.commit()

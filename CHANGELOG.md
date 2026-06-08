@@ -24,6 +24,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); newest on top.
 ### Changed
 - "My Requests" now also shows actual litres, drawn date, and amount once encoded.
 
+### Fixed
+- Encoding actual litres crashed with a `ProgrammingError` (psycopg2 can't adapt numpy types). DB write helpers now coerce ids/litres/price from numpy/pandas types to native Python (`int`, `float`, `Decimal`) before binding.
+
 ## [Stage A] - 2026-06-08
 ### Added
 - User requisition form (request date, active-asset dropdown, litres, purpose) creating a `pending` requisition, plus a "My Requests" table showing each request's status.
