@@ -92,7 +92,8 @@ diesel-requisition/
 │   ├── requisition.py  # User: new request, my requests, record fuel drawn
 │   ├── approvals.py    # Manager: approve / reject pending requests
 │   ├── pricing.py      # Purchaser: set the daily diesel price
-│   └── confirm.py      # Purchaser: confirm actual vs receipt
+│   ├── confirm.py      # Purchaser: confirm actual vs receipt
+│   └── billing.py      # Purchaser: create billings + bill payment request
 ├── requirements.txt
 ├── secrets-template.toml
 ├── .gitignore
@@ -104,4 +105,4 @@ diesel-requisition/
 
 ## Current status
 
-**Stage B — Actualisation, daily price, confirmation: complete.** On top of Stage A (create/approve requisitions), the Purchaser sets a daily diesel price; users encode actual litres + drawn date on their approved requests (snapshotting that day's price, blocked if none is set); the Purchaser confirms actual vs receipt. Billing and master-data screens (Stages C–D) are still placeholders.
+**Stage C — Billing: complete.** On top of Stage B, the Purchaser groups confirmed (not-yet-billed) requests into a billing — tagging them `billed` so they drop out of the list — and views a bill payment request (line items + total) for any billing. The master-data screen (Stage D) is still a placeholder.

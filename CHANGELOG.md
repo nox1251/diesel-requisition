@@ -14,6 +14,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); newest on top.
 ### Removed
 - Google OIDC sign-in (`st.login()` / `Authlib` / `httpx`): native Streamlit OAuth does not work on Streamlit Community Cloud, whose auth proxy breaks the OAuth callback. Replaced with username/password login.
 
+## [Stage C] - 2026-06-08
+### Added
+- Purchaser "Billing" screen with two tabs: *Create billing* (multi-select confirmed, not-yet-billed requests → create a billing and tag them `billed`, removing them from the list) and *Bill payment request* (pick a billing → line items with the total).
+- `db.py` helpers: `get_billable_requisitions`, `create_billing`, `get_billings`, `get_billing_lines`.
+
 ## [Stage B] - 2026-06-08
 ### Added
 - Purchaser "Daily Price" screen: set/update the diesel price for a date; shows the price already set for that date.

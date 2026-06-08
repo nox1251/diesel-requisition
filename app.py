@@ -8,6 +8,7 @@ from views.requisition import new_requisition, my_requests, encode_actual
 from views.approvals import approvals
 from views.pricing import pricing
 from views.confirm import confirm
+from views.billing import billing
 
 st.set_page_config(page_title="Diesel Requisition", page_icon="⛽")
 
@@ -61,5 +62,7 @@ elif page == "Daily Price":
     pricing(email)
 elif page == "Confirm Receipts":
     confirm(email)
+elif page == "Billing":
+    billing(email)
 else:
     st.info("This screen is a placeholder — it will be built in a later stage.")

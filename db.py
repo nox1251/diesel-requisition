@@ -327,3 +327,70 @@ def confirm_requisition(req_id, confirmer):
             {"by": confirmer, "id": int(req_id)},
         )
         s.commit()
+
+
+def get_billable_requisitions():
+    """Confirmed requests not yet assigned to a billing, with computed amount."""
+    conn = get_conn()
+    return conn.query(
+        "SELECT r.id, r.request_date, r.requested_by, a.name AS asset, "
+        "       r.drawn_date, r.actual_liters, r.unit_price, "
+        "       r.actual_liters * r.unit_price AS amount "
+        "FROM requisitions r JOIN assets a ON a.id = r.asset_id "
+        "WHERE r.status = 'confirmed' AND r.billing_id IS NULL "
+        "ORDER BY r.confirmed_at",
+        ttl=0,
+    )
+
+
+def create_billing(created_by, req_ids, supplier_ref, note):
+    """Create a billing and tag the selected confirmed requests as billed."""
+    conn = get_conn()
+    with conn.session as s:
+        billing_id = s.execute(
+            text(
+                "INSERT INTO billings (created_by, supplier_ref, note) "
+                "VALUES (:by, :ref, :note) RETURNING id"
+            ),
+            {"by": created_by, "ref": supplier_ref, "note": note},
+        ).scalar()
+        for req_id in req_ids:
+            s.execute(
+                text(
+                    "UPDATE requisitions "
+                    "SET billing_id = :bid, billed_by = :by, billed_at = now(), "
+                    "    status = 'billed' "
+                    "WHERE id = :id AND status = 'confirmed' AND billing_id IS NULL"
+                ),
+                {"bid": int(billing_id), "by": created_by, "id": int(req_id)},
+            )
+        s.commit()
+        return billing_id
+
+
+def get_billings():
+    """All billings, newest first, with line count and total amount."""
+    conn = get_conn()
+    return conn.query(
+        "SELECT b.id, b.created_at, b.created_by, b.supplier_ref, b.note, "
+        "       COUNT(r.id) AS line_count, "
+        "       COALESCE(SUM(r.actual_liters * r.unit_price), 0) AS total "
+        "FROM billings b LEFT JOIN requisitions r ON r.billing_id = b.id "
+        "GROUP BY b.id ORDER BY b.created_at DESC",
+        ttl=0,
+    )
+
+
+def get_billing_lines(billing_id):
+    """Line items for a billing's bill payment request."""
+    conn = get_conn()
+    return conn.query(
+        "SELECT r.drawn_date, a.name AS asset, r.requested_by, r.receipt_no, "
+        "       r.actual_liters, r.unit_price, "
+        "       r.actual_liters * r.unit_price AS amount "
+        "FROM requisitions r JOIN assets a ON a.id = r.asset_id "
+        "WHERE r.billing_id = :bid "
+        "ORDER BY r.drawn_date",
+        params={"bid": int(billing_id)},
+        ttl=0,
+    )
